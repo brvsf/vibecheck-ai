@@ -3,6 +3,7 @@ pylint
 ipdb
 jupyterlab
 numpy
+nltk
 pandas
 matplotlib
 seaborn
