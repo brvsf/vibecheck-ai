@@ -5,10 +5,10 @@ class TextCleaning:
     A utility class for cleaning textual data by applying various cleaning operations.
 
     Example:
-        cleaner = TextCleaning()
-        sentence = " Hello, World! 123 "
-        cleaned_sentence = cleaner.full_cleaning(sentence)
-        print(cleaned_sentence)  # Output: "hello world"
+        >>> cleaner = TextCleaning()
+        >>> sentence = " Hello, World! 123 "
+        >>> cleaned_sentence = cleaner.full_cleaning(sentence)
+        >>> print(cleaned_sentence)  # Output: "hello world"
     """
     def __init__(self):
         """
@@ -27,9 +27,9 @@ class TextCleaning:
             str: The sentence with all characters in lowercase.
 
         Example:
-            sentence = "Hello World"
-            result = cleaner.to_lowercase(sentence)
-            print(result)  # Output: "hello world"
+            >>> sentence = "Hello World"
+            >>> result = cleaner.to_lowercase(sentence)
+            >>> print(result)  # Output: "hello world"
         """
         if not isinstance(sentence, str):
             raise ValueError("Input must be a string")
@@ -46,9 +46,9 @@ class TextCleaning:
             str: The sentence without numeric characters.
 
         Example:
-            sentence = "Hello 123"
-            result = cleaner.remove_numbers(sentence)
-            print(result)  # Output: "Hello "
+            >>> sentence = "Hello 123"
+            >>> result = cleaner.remove_numbers(sentence)
+            >>> print(result)  # Output: "Hello "
         """
         if not isinstance(sentence, str):
             raise ValueError("Input must be a string")
@@ -65,9 +65,9 @@ class TextCleaning:
             str: The sentence without punctuation.
 
         Example:
-            sentence = "Hello, World!"
-            result = cleaner.remove_punctuation(sentence)
-            print(result)  # Output: "Hello World"
+            >>> sentence = "Hello, World!"
+            >>> result = cleaner.remove_punctuation(sentence)
+            >>> print(result)  # Output: "Hello World"
         """
         if not isinstance(sentence, str):
             raise ValueError("Input must be a string")
@@ -84,9 +84,9 @@ class TextCleaning:
             str: The sentence without leading and trailing spaces.
 
         Example:
-            sentence = "   Hello World   "
-            result = cleaner.strip_spaces(sentence)
-            print(result)  # Output: "Hello World"
+            >>> sentence = "   Hello World   "
+            >>> result = cleaner.strip_spaces(sentence)
+            >>> print(result)  # Output: "Hello World"
         """
         if not isinstance(sentence, str):
             raise ValueError("Input must be a string")
@@ -104,9 +104,9 @@ class TextCleaning:
             str: The fully cleaned sentence.
 
         Example:
-            sentence = " Hello, World! 123 "
-            cleaned_sentence = cleaner.full_cleaning(sentence)
-            print(cleaned_sentence)  # Output: "hello world"
+            >>> sentence = " Hello, World! 123 "
+            >>> cleaned_sentence = cleaner.full_cleaning(sentence)
+            >>> print(cleaned_sentence)  # Output: "hello world"
         """
         if not isinstance(sentence, str):
             raise ValueError("Input must be a string")

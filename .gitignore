@@ -6,4 +6,5 @@ build/
 *.egg-info/
 
 raw_data/
+processed_data/
 logic.py
