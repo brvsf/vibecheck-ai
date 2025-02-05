@@ -1,2 +1,9 @@
+# Ignore build files from python
+*.pyc
+__pycache__/
+dist/
+build/
+*.egg-info/
+
 raw_data/
 logic.py
