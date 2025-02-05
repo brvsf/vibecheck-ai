@@ -5,6 +5,11 @@ class LoadData:
     """
     A class to handle loading data from CSV files. It retrieves the file path
     and provides a method to load the CSV content as a pandas DataFrame.
+
+    Example:
+        loader = LoadData("df_name")
+        df = loader.load_csv(loader.path)
+        print(df.shape) # Output: (x, y)
     """
 
     def __init__(self, file_name: str):
@@ -51,14 +56,3 @@ class LoadData:
             pd.DataFrame: A pandas DataFrame containing the data from the CSV file.
         """
         return pd.read_csv(path)
-
-
-
-# Example of usage:
-# def main():
-#     loader = LoadData("combined_emotion")
-#     df = loader.load_csv(loader.path)
-#     print(df.shape)
-
-# if __name__ == '__main__':
-#     main()
