@@ -1,4 +1,8 @@
 import string
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk import pos_tag
 
 class TextCleaning:
     """
@@ -115,5 +119,169 @@ class TextCleaning:
         sentence = self.remove_numbers(sentence)
         sentence = self.remove_punctuation(sentence)
         sentence = self.strip_spaces(sentence)
+
+        return sentence
+
+
+class Preprocessing:
+    """
+    A utility class for preprocessing textual data by applying various operations, including
+    tokenization, removal of stopwords, and lemmatization.
+
+    This class provides methods to:
+    - Tokenize a sentence and remove stopwords.
+    - Lemmatize tokens with part-of-speech tagging.
+    - Combine tokenization and lemmatization into a single preprocessing step.
+
+    Example:
+        >>> preprocessor = Preprocessing(remove_stopwords=True)
+        >>> sentence = "The cats are running quickly towards the garden."
+        >>> preprocessor.preprocessor(sentence)
+        'cat run quickly toward garden'
+    """
+
+    def __init__(self, remove_stopwords: bool = True):
+        """
+        Initializes the Preprocessing class.
+
+        Args:
+            remove_stopwords (bool, optional): Whether to remove stopwords. Defaults to True.
+
+        Example:
+            >>> preprocessor = Preprocessing(remove_stopwords=False)
+        """
+        self.remove_stopwords = remove_stopwords
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words("english")) if remove_stopwords else set()
+
+    def tokenizer(self, sentence: str) -> list:
+        """
+        Tokenize a sentence and remove stopwords.
+
+        Args:
+            sentence (str): The input sentence.
+
+        Returns:
+            list: A list of words from the sentence with stopwords removed.
+
+        Raises:
+            ValueError: If the input is not a string.
+
+        Example:
+            >>> preprocessor = Preprocessing()
+            >>> preprocessor.tokenizer("The quick brown fox jumps over the lazy dog.")
+            ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog']
+        """
+        if not isinstance(sentence, str):
+            raise ValueError("Input must be a string")
+
+        # Tokenize the sentence, preserving line breaks
+        tokens = word_tokenize(sentence, preserve_line=True)
+
+        # Remove stopwords from the tokenized list
+        sentence = [w for w in tokens if w.lower() not in self.stop_words]
+
+        return sentence
+
+    def get_wordnet_pos(self, word: str) -> dict:
+        """
+        Get the part-of-speech (POS) tag for a word and map it to WordNet's POS format.
+
+        This method uses the NLTK's part-of-speech tagger to identify the POS tag of the word
+        and then maps it to WordNet's POS tags. WordNet uses 'n' for nouns, 'v' for verbs,
+        'r' for adverbs, 'a' for adjectives, and 's' for satellite adjectives.
+
+        Args:
+            word (str): The word whose POS tag is to be identified.
+
+        Returns:
+            dict: A dictionary mapping the word to its POS tag in WordNet format.
+
+        Raises:
+            ValueError: If the input is not a string.
+
+        Example:
+            >>> preprocessor = Preprocessing()
+            >>> preprocessor.get_wordnet_pos("running")
+            {'run':'v'}
+        """
+        if not isinstance(word, str):
+            raise ValueError("Input must be a string")
+
+        target_word = pos_tag([word])[0][0]
+        pos = pos_tag([word])[0][1][0].lower()
+
+        # If the POS tag is not one of the known categories, default to noun ('n')
+        if pos not in ['n', 'a', 'r', 'v', 's']:
+            pos = 'n'
+
+        return {target_word: pos}
+
+    def lemmatize(self, sentence: list) -> str:
+        """
+        Lemmatize the words in a list of tokens and join them into a sentence.
+
+        This method reduces words to their base or dictionary form (lemmas), using the part-of-speech
+        tags to improve accuracy. For example, turning "running" into "run" or "better" into "good".
+
+        Args:
+            sentence (list): A list of words (tokens) to be lemmatized.
+
+        Returns:
+            str: A sentence formed by joining the lemmatized words.
+
+        Raises:
+            ValueError: If the input is not a list.
+
+        Example:
+            >>> preprocessor = Preprocessing()
+            >>> preprocessor.lemmatize(['running', 'quickly', 'towards', 'the', 'garden'])
+            'run quickly toward garden'
+        """
+        if not isinstance(sentence, list):
+            raise ValueError("Input must be a list")
+
+        # Get POS tags for each word in the sentence
+        tags = [self.get_wordnet_pos(word) for word in sentence]
+
+        lemmatized_sentence = []
+        for d in tags:
+            for word, pos in d.items():
+                lemmatized_sentence.append(self.lemmatizer.lemmatize(word, pos))
+
+        # Join the lemmatized words into a single sentence
+        sentence = ' '.join(lemmatized_sentence)
+
+        return sentence
+
+    def preprocessor(self, sentence: str) -> str:
+        """
+        Apply tokenization and lemmatization on the input sentence.
+
+        This method combines both the `tokenizer` and `lemmatizer` methods
+        to preprocess the input sentence, returning the cleaned and lemmatized result.
+
+        Args:
+            sentence (str): The input sentence to be processed.
+
+        Returns:
+            str: The fully processed sentence.
+
+        Raises:
+            ValueError: If the input is not a string.
+
+        Example:
+            >>> preprocessor = Preprocessing()
+            >>> preprocessor.preprocessor("The cats are running quickly towards the garden.")
+            'cat run quickly toward garden'
+        """
+        if not isinstance(sentence, str):
+            raise ValueError("Input must be a string")
+
+        # Tokenize the sentence
+        sentence = self.tokenizer(sentence)
+
+        # Lemmatize the tokenized sentence
+        sentence = self.lemmatize(sentence)
 
         return sentence
