@@ -185,39 +185,50 @@ class Preprocessing:
 
     def get_wordnet_pos(self, word: str) -> dict:
         """
-        Get the part-of-speech (POS) tag for a word and map it to WordNet's POS format.
+        Assigns a part-of-speech (POS) tag to a word in WordNet format.
 
-        This method uses the NLTK's part-of-speech tagger to identify the POS tag of the word
-        and then maps it to WordNet's POS tags. WordNet uses 'n' for nouns, 'v' for verbs,
-        'r' for adverbs, 'a' for adjectives, and 's' for satellite adjectives.
+        WordNet uses the following categories:
+        - 'n' = Noun
+        - 'v' = Verb
+        - 'a' = Adjective
+        - 'r' = Adverb
+        - 's' = Satellite Adjective
+
+        This function retrieves the word's POS tag using NLTK's `pos_tag`
+        (which uses the Averaged Perceptron Tagger) and maps it to the WordNet format.
 
         Args:
-            word (str): The word whose POS tag is to be identified.
+            word (str): The word to be classified.
 
         Returns:
-            dict: A dictionary mapping the word to its POS tag in WordNet format.
+            dict: A dictionary mapping the word to its WordNet POS tag.
 
         Raises:
             ValueError: If the input is not a string.
-
-        Example:
-            >>> preprocessor = Preprocessing()
-            >>> preprocessor.get_wordnet_pos("running")
-            {'run':'v'}
         """
         if not isinstance(word, str):
-            raise ValueError("Input must be a string")
+            raise ValueError("Input must be a string.")
 
-        target_word = pos_tag([word])[0][0]
-        pos = pos_tag([word])[0][1][0].lower()
+        # Get the POS tag using NLTK's pos_tag function
+        nltk_tag = pos_tag([word])[0][1]
 
-        # If the POS tag is not one of the known categories, default to noun ('n')
-        if pos not in ['n', 'a', 'r', 'v', 's']:
-            pos = 'n'
+        if word.endswith("ing"):
+            return {word: "v"}
 
-        return {target_word: pos}
+        # Mapping from NLTK POS tags to WordNet POS tags
+        tag_mapping = {
+            "J": "a",  # Adjective
+            "V": "v",  # Verb
+            "N": "n",  # Noun
+            "R": "r"   # Adverb
+        }
 
-    def lemmatize(self, sentence: list) -> str:
+        # Get the first letter of the NLTK POS tag and map it
+        pos = tag_mapping.get(nltk_tag[0], "n")  # Default to 'n' if unknown
+
+        return {word: pos}
+
+    def lemmatizing(self, sentence: list) -> str:
         """
         Lemmatize the words in a list of tokens and join them into a sentence.
 
@@ -282,6 +293,6 @@ class Preprocessing:
         sentence = self.tokenizer(sentence)
 
         # Lemmatize the tokenized sentence
-        sentence = self.lemmatize(sentence)
+        sentence = self.lemmatizing(sentence)
 
         return sentence
