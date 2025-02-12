@@ -1,4 +1,7 @@
 import string
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -296,3 +299,84 @@ class Preprocessing:
         sentence = self.lemmatizing(sentence)
 
         return sentence
+
+
+class DataTransformers:
+    """
+    A class to handle data transformation tasks such as encoding emotion labels
+    and generating TF-IDF features from text data.
+
+    Methods:
+        encode_emotions(df_cleaned): Encodes the 'emotion' column in the DataFrame.
+        generate_tfidf_features(df_cleaned, min_df=5): Generates a TF-IDF matrix from the 'preprocessed_sentence' column.
+
+    Example:
+        >>> transformer = DataTransformers()
+        >>> y_encoded, mapping_dict = transformer.encode_emotions(df_cleaned)
+        >>> X, tf_idf_vectorizer = transformer.generate_tfidf_features(df_cleaned)
+    """
+    def __init__(self):
+        """
+        Initializes the DataTransformers class.
+        This class does not require any initialization parameters.
+        """
+        pass
+
+    def encode_emotions(df_cleaned: pd.DataFrame) -> pd.DataFrame:
+        """
+        Encodes the 'emotion' column of the provided DataFrame using Label Encoding
+        and returns the encoded labels along with a mapping dictionary.
+
+        Args:
+            df_cleaned (pd.DataFrame): The DataFrame containing the 'emotion' column to be encoded.
+
+        Returns:
+            tuple: A tuple containing the encoded labels as a numpy array and a dictionary that maps
+                encoded values back to original emotion labels.
+
+        Example:
+            >>> y_encoded, mapping_dict = DataTransformers.encode_emotions(df_cleaned)
+            >>> print(y_encoded[:5])
+            >>> print(mapping_dict)
+        """
+        # Initialize the LabelEncoder
+        label_encoder = LabelEncoder()
+
+        # Extract the 'emotion' column and copy it
+        y = df_cleaned[['emotion']].copy()
+
+        # Fit and transform the 'emotion' column to encoded labels
+        y_encoded = label_encoder.fit_transform(y)
+
+        # Create a mapping dictionary from encoded labels to original labels
+        mapping_dict = {encoded: original for original, encoded in zip(label_encoder.classes_, range(len(label_encoder.classes_)))}
+
+        return y_encoded, mapping_dict
+
+    def generate_tfidf_features(df_cleaned : pd.DataFrame, min_df=5) -> pd.DataFrame:
+        """
+        Generates a TF-IDF matrix from the 'preprocessed_sentence' column of the provided
+        DataFrame and returns it as a DataFrame with feature names as columns.
+
+        Args:
+            df_cleaned (pd.DataFrame): The DataFrame containing the 'preprocessed_sentence' column to be transformed.
+            min_df (int, optional): The minimum number of documents a word must appear in to be included in the TF-IDF matrix. Default is 5.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the TF-IDF features with the corresponding feature names as columns.
+
+        Example:
+            >>> X, tf_idf_vectorizer = DataTransformers.generate_tfidf_features(df_cleaned)
+            >>> print(X.head())
+        """
+        # Initialize the TfidfVectorizer with the specified minimum document frequency
+        tf_idf_vectorizer = TfidfVectorizer(min_df=min_df)
+
+        # Extract the 'preprocessed_sentence' column, dropping any NaN values
+        texts = [text for text in df_cleaned['preprocessed_sentence'].dropna()]
+
+        # Generate the TF-IDF matrix and convert it to a DataFrame
+        X = pd.DataFrame(tf_idf_vectorizer.fit_transform(texts).toarray(),
+                         columns=tf_idf_vectorizer.get_feature_names_out())
+
+        return X, tf_idf_vectorizer
