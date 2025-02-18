@@ -6,6 +6,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk import pos_tag
+from scipy.sparse import csr_matrix
 
 class TextCleaning:
     """
@@ -337,63 +338,69 @@ class DataTransformers:
         """
         pass
 
-    def encode_emotions(self, df_cleaned: pd.DataFrame) -> pd.DataFrame:
+    def encode_emotions(self, y_train: pd.Series, y_test : pd.Series) -> tuple[pd.Series, pd.Series, dict[int, str]]:
         """
-        Encodes the 'emotion' column of the provided DataFrame using Label Encoding
+        Encodes the 'emotion' columns of the provided Series for both training and testing datasets using Label Encoding
         and returns the encoded labels along with a mapping dictionary.
 
         Args:
-            df_cleaned (pd.DataFrame): The DataFrame containing the 'emotion' column to be encoded.
+            y_train (pd.Series): The Series containing the 'emotion' column for the training dataset to be encoded.
+            y_test (pd.Series): The Series containing the 'emotion' column for the testing dataset to be encoded.
 
         Returns:
-            tuple: A tuple containing the encoded labels as a numpy array and a dictionary that maps
-                encoded values back to original emotion labels.
+            tuple: A tuple containing:
+                - The encoded training labels as a pandas Series.
+                - The encoded testing labels as a pandas Series.
+                - A dictionary that maps encoded values back to the original emotion labels.
 
         Example:
-            >>> y_encoded, mapping_dict = DataTransformers.encode_emotions(df_cleaned)
-            >>> print(y_encoded[:5])
+            >>> y_train_encoded, y_test_encoded, mapping_dict = DataTransformers.encode_emotions(y_train, y_test)
+            >>> print(y_train_encoded[:5])
             >>> print(mapping_dict)
         """
         # Initialize the LabelEncoder
         label_encoder = LabelEncoder()
 
-        # Extract the 'emotion' column and copy it
-        y = df_cleaned['emotion'].copy()
-
         # Fit and transform the 'emotion' column to encoded labels
-        y_encoded = label_encoder.fit_transform(y)
+        y_train_transformed = label_encoder.fit_transform(y_train)
+        y_test_transformed = label_encoder.transform(y_test)
 
         # Create a mapping dictionary from encoded labels to original labels
         mapping_dict = {encoded: original for original, encoded in zip(label_encoder.classes_, range(len(label_encoder.classes_)))}
 
-        return y_encoded, mapping_dict
+        return y_train_transformed, y_test_transformed, mapping_dict
 
-    def generate_tfidf_features(self, df_cleaned : pd.DataFrame, min_df=5) -> pd.DataFrame:
+    def generate_tfidf_features(self, X_train : pd.DataFrame, X_test : pd.DataFrame, min_df=5) -> tuple[csr_matrix, csr_matrix, TfidfVectorizer]:
         """
-        Generates a TF-IDF matrix from the 'sentence' column of the provided
-        DataFrame and returns it as a DataFrame with feature names as columns.
+        Generates TF-IDF matrices from the 'sentence' column of the provided DataFrames for both training and testing datasets.
 
         Args:
-            df_cleaned (pd.DataFrame): The DataFrame containing the 'sentence' column to be transformed.
+            X_train (pd.DataFrame): The DataFrame containing the 'sentence' column for the training dataset to be transformed.
+            X_test (pd.DataFrame): The DataFrame containing the 'sentence' column for the testing dataset to be transformed.
             min_df (int, optional): The minimum number of documents a word must appear in to be included in the TF-IDF matrix. Default is 5.
 
         Returns:
-            pd.DataFrame: A DataFrame containing the TF-IDF features with the corresponding feature names as columns.
+            tuple: A tuple containing:
+                - The TF-IDF matrix for the training dataset as a sparse matrix (csr_matrix).
+                - The TF-IDF matrix for the testing dataset as a sparse matrix (csr_matrix).
+                - The fitted TfidfVectorizer instance used to transform the text data.
 
         Example:
-            >>> X, tf_idf_vectorizer = DataTransformers.generate_tfidf_features(df_cleaned)
-            >>> print(X.head())
+            >>> X_train_tfidf, X_test_tfidf, tf_idf_vectorizer = DataTransformers.generate_tfidf_features(X_train, X_test)
+            >>> print(X_train_tfidf.shape, X_test_tfidf.shape)
+            >>> print(tf_idf_vectorizer.get_feature_names_out()[:5])
         """
         # Initialize the TfidfVectorizer with the specified minimum document frequency
         tf_idf_vectorizer = TfidfVectorizer(min_df=min_df)
 
-        # Extract the 'sentence' column, dropping any NaN values
-        texts = [text for text in df_cleaned['sentence'].dropna()]
+        # Extract the text from X_train and X_test and drop any NA values
+        texts_train = [text for text in X_train['sentence'].dropna()]
+        texts_test = [text for text in X_test['sentence'].dropna()]
 
-        # Generate the TF-IDF matrix and convert it to a DataFrame
-        # X = pd.DataFrame(tf_idf_vectorizer.fit_transform(texts).toarray(),
-        #                  columns=tf_idf_vectorizer.get_feature_names_out())
+        # Generate the TF-IDF matrix for training data
+        X_train_tfidf = tf_idf_vectorizer.fit_transform(texts_train)
 
-        X = tf_idf_vectorizer.fit_transform(texts)
+        # Transform the test data using the same vocabulary
+        X_test_tfidf = tf_idf_vectorizer.transform(texts_test)
 
-        return X, tf_idf_vectorizer
+        return X_train_tfidf, X_test_tfidf, tf_idf_vectorizer

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import pickle as pkl
@@ -5,6 +6,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import cross_validate, train_test_split
+from scipy.sparse import csr_matrix
 
 
 class ModelCreator:
@@ -27,21 +29,22 @@ class ModelCreator:
         >>> model = creator.load()
     """
 
-    def __init__(self, X : pd.DataFrame, y : pd.Series):
-        """
-        Initializes the ModelCreator with the input features and target labels.
+    # def __init__(self, X_train : csr_matrix, X_test : csr_matrix, y_train : pd.Series, y_test : pd.Series):
+    #     """
+    #     Initializes the ModelCreator with the input features and target labels.
 
-        Args:
-            X (pd.DataFrame): The input features for the model (already vectorized).
-            y (pd.Series): The target labels for the model (already encoded).
+    #     Args:
+    #         X (csr_matrix): The input features for the model (already vectorized).
+    #         y (pd.Series): The target labels for the model (already encoded).
 
-        Examples:
-            >>> creator = ModelCreator(X, y)
-        """
-        self.model = self.build_model()
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2)
+    #     Examples:
+    #         >>> creator = ModelCreator(X, y)
+    #     """
+    #     self.model = self.build_model()
+    #     self.X_train, self.X_test, self.y_train, self.y_test = X_train, X_test, y_train, y_test
 
-    def build_model(self) -> MultinomialNB:
+
+    def build_model() -> MultinomialNB:
         """
         Builds a Multinomial Naive Bayes model with custom hyperparameters.
 
@@ -53,22 +56,10 @@ class ModelCreator:
         """
         return MultinomialNB(
             alpha=1.99,
-            class_prior=[0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]
+            #class_prior=[0.1667, 0.1667, 0.1667, 0.1667, 0.1667, 0.1667]
         )
 
-    def train(self) -> MultinomialNB:
-        """
-        Trains the model on the training data.
-
-        Returns:
-            MultinomialNB: The trained Naive Bayes model.
-
-        Examples:
-            >>> model.train()
-        """
-        self.model.fit(self.X_train, self.y_train)
-
-    def evaluate(self) -> tuple[float, float, float, float]:
+    def evaluate(model : MultinomialNB, X_train : csr_matrix, X_test : csr_matrix, y_train : pd.Series, y_test : pd.Series) -> tuple[float, float, float, float]:
         """
         Scores the model on the test data and returns the performance metrics.
 
@@ -78,23 +69,38 @@ class ModelCreator:
         Examples:
             >>> cross_val_acc, precision, recall, f1 = model.evaluate()
         """
-        model = self.model
-        cross_val_acc = cross_validate(model, self.X_train, self.y_train, cv=5, scoring='accuracy')['test_score'].mean()
-        y_pred = model.predict(self.X_test)
-        precision, recall, f1, _ = precision_recall_fscore_support(self.y_test, y_pred, average='macro')
+        model = model
+        cross_val_acc = cross_validate(model, X_train, y_train, cv=5, scoring='accuracy')['test_score'].mean()
+        y_pred = model.predict(X_test)
+        precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='macro')
         return cross_val_acc, precision, recall, f1
 
-    def save(self):
+    def save(model):
         """
         Saves the trained model to a file.
 
         Examples:
             >>> model.save()
         """
-        with open("../checkpoints/model.pkl", "wb") as f:
-            pkl.dump(self.model, f)
+        # Get the current directory of the script being executed (absolute path)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    def load(self):
+        # Define the path for the checkpoints folder relative to the script directory
+        save_dir = os.path.join(current_dir, "..", "checkpoints")
+
+        # Ensure the directory exists
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Absolute path for saving
+        model_path = os.path.join(save_dir, "model.pkl")
+
+        try:
+            with open(model_path, "wb") as f:
+                pkl.dump(model, f)
+        except Exception as e:
+            print(e)
+
+    def load():
         """
         Loads a trained model from a file.
 
@@ -106,8 +112,13 @@ class ModelCreator:
         Examples:
             >>> model = ModelCreator().load()
         """
+        # Get the current directory of the script being executed (absolute path)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Define the path for the checkpoints folder relative to the script directory
+        load_dir = os.path.join(current_dir, "..", "checkpoints")
         try:
-            with open("../checkpoints/model.pkl", "rb") as f:
+            with open(f"{load_dir}/model.pkl", "rb") as f:
                 model = pkl.load(f)
                 return model
         except FileNotFoundError:
@@ -145,11 +156,9 @@ class ModelPredictor:
         Examples:
             >>> predictor = ModelPredictor(model, tfidf, mapping)
         """
-        self.model = model
-        self.tfidf = tfidf
-        self.mapping = mapping
+        pass
 
-    def predict(self, X_new : list) -> int:
+    def prediction(model, X_new : list, tfidf : TfidfVectorizer) -> int:
         """
         Predicts the class label for a new input based on the trained model.
 
@@ -161,10 +170,10 @@ class ModelPredictor:
         Examples:
             >>> prediction = predictor.predict("This is a new sentence.")
         """
-        X_new_tfidf = self.tfidf.transform(X_new)
-        return self.model.predict(X_new_tfidf)[0]
+        X_new_tfidf = tfidf.transform(X_new)
+        return model.predict(X_new_tfidf)[0]
 
-    def probabilities(self, X_new : list) -> np.ndarray[float]:
+    def probabilities(model, X_new : list, tfidf : TfidfVectorizer) -> np.ndarray[float]:
         """
         Predicts the class probabilities for a new input based on the trained model.
 
@@ -176,10 +185,10 @@ class ModelPredictor:
         Examples:
             >>> probabilities = predictor.probabilities("This is a new sentence.")
         """
-        X_new = self.tfidf.transform(X_new)
-        return self.model.predict_proba(X_new)
+        X_new_tfidf = tfidf.transform(X_new)
+        return model.predict_proba(X_new_tfidf)[0]
 
-    def translate(self, y_pred : int) -> str:
+    def translate(mapping : dict, y_pred : int) -> str:
         """
         Translates the predicted class label to its corresponding string label.
 
@@ -193,4 +202,4 @@ class ModelPredictor:
             >>> translated_label = predictor.translate(prediction)
         """
 
-        return self.mapping.get(y_pred, "Unknown")
+        return mapping.get(y_pred, "Unknown")

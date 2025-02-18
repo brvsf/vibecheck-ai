@@ -1,11 +1,10 @@
 import shutil
 from pathlib import Path
 import pandas as pd
-from model.data import LoadData
-from model.model import ModelCreator
+from model.data import LoadData, DataAdjustment
+from model.model import ModelCreator, ModelPredictor
 from model.preprocessing import TextCleaning, Preprocessing, DataTransformers
 
-from sklearn.model_selection import train_test_split
 
 def main():
 
@@ -23,13 +22,19 @@ def main():
 
         print(f"Data loaded ✅\nShape = {data.shape}\nColumns = {list(data.columns)}\n")
 
+        # Balancing classes
+        balanced_data = data.copy()
+
+        balancer = DataAdjustment(data)
+        balanced_data = balancer.balancing_data()
+
         # Basic cleaning processing
-        print("Cleaning data ⌛\n")
+        print("Cleaning data ⌛\n") ## ta errado aqui
 
         cleaner = TextCleaning()
-        cleaned_data = data.copy()
+        cleaned_data = balanced_data.copy()
 
-        cleaned_data['sentence'] = data['sentence'].apply(cleaner.full_cleaning)
+        cleaned_data['sentence'] = balanced_data['sentence'].apply(cleaner.full_cleaning)
 
         print("Cleaning completed ✅\n")
 
@@ -51,6 +56,7 @@ def main():
 
         # Removing useless dataframes from memory
         del(data)
+        del(balanced_data)
         del(cleaned_data)
         del(preprocessed_data)
 
@@ -84,15 +90,67 @@ def main():
     # Encoding + vectorizing
     print("Enconding and vectorizing data ⌛\n")
 
-    transformer = DataTransformers()
-    y, mapping_dict = transformer.encode_emotions(data)
-    X, tf_idf_vectorizer = transformer.generate_tfidf_features(data)
+    X = data[["sentence"]]
+    y = data["emotion"]
+
+    train_size = int(0.8 * len(X))
 
     # Holdout method
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    X_train = X[:train_size]
+    y_train = y[:train_size]
 
-    print("Data transformed ✅")
+    X_test = X[train_size:]
+    y_test = y[train_size:]
 
+    transformer = DataTransformers()
+    y_train, y_test, mapping_dict = transformer.encode_emotions(y_train, y_test)
+    X_train, X_test, tf_idf_vectorizer = transformer.generate_tfidf_features(X_train, X_test)
+    # Removing useless data from memory
+    del(data)
+    del(X)
+    del(y)
+    print("Data transformed ✅\n")
+
+    # Model
+    print("Training model ⌛\n")
+
+    model = ModelCreator.build_model()
+    model.fit(X_train, y_train)
+    cross_val_acc, precision, recall, f1 = ModelCreator.evaluate(
+        model, X_train, X_test, y_train, y_test
+    )
+
+    print("-----Model Scoring-----")
+    print(f"Accuracy: {round(cross_val_acc, 2)}\nPrecision: {round(precision, 2)}\
+            \nRecall: {round(recall, 2)}\nF1-Score: {round(f1, 2)}")
+    print("-----------------------\n")
+    print("Model trained ✅\n")
+
+    # Saving model
+    ModelCreator.save(model=model)
+
+    # Loading model
+    model = ModelCreator.load()
+
+    # Testing a sentence
+    print("Test sentence ⌛\n")
+    test_sentence='something'
+    while(test_sentence != '0'):
+        test_sentence = input("Escreva uma frase: \n")
+
+        # Ensure the prediction is aligned with the model
+        print(f"Sentence: {str(test_sentence)}\n")
+
+        prediction = ModelPredictor.prediction(model, [test_sentence], tf_idf_vectorizer)
+
+        translation = ModelPredictor.translate(mapping=mapping_dict, y_pred=prediction)
+
+        proba = ModelPredictor.probabilities(model, [test_sentence], tf_idf_vectorizer)
+
+        print(mapping_dict)
+
+        print(f"Prediction for test sentence: {prediction}, {translation}")
+        print(f"Proba for each class sentence: {proba}")
 
 
 if __name__ == '__main__':
