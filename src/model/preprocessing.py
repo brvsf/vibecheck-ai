@@ -149,13 +149,28 @@ class Preprocessing:
 
         Args:
             remove_stopwords (bool, optional): Whether to remove stopwords. Defaults to True.
+                If True, standard English stopwords are removed, except for key words
+                relevant to sentiment analysis (e.g., "no", "not", "never", "but", "however").
 
         Example:
             >>> preprocessor = Preprocessing(remove_stopwords=False)
         """
         self.remove_stopwords = remove_stopwords
         self.lemmatizer = WordNetLemmatizer()
-        self.stop_words = set(stopwords.words("english")) if remove_stopwords else set()
+
+        keep_words = {
+            "no", "not", "never", "nor", "none", "nothing", "without",
+            "very", "too", "so", "only", "much", "most", "enough", "quite", "rather",
+            "than", "as", "like", "unlike", "although", "but", "however", "though", "whereas",
+            "i", "me", "my", "mine", "you", "your", "yours", "he", "she", "his", "her",
+            "we", "us", "our", "ours", "what", "why", "how"
+        }
+        if remove_stopwords:
+            self.stop_words = set()
+        else:
+            self.stop_words = set(stopwords.words("english")) - keep_words
+
+
 
     def tokenizer(self, sentence: str) -> list:
         """
@@ -268,11 +283,11 @@ class Preprocessing:
 
         return sentence
 
-    def preprocessor(self, sentence: str) -> str:
+    def full_preprocessor(self, sentence: str) -> str:
         """
         Apply tokenization and lemmatization on the input sentence.
 
-        This method combines both the `tokenizer` and `lemmatizer` methods
+        This method combines both the  `tokenizer` and `lemmatizer` methods
         to preprocess the input sentence, returning the cleaned and lemmatized result.
 
         Args:
@@ -286,7 +301,7 @@ class Preprocessing:
 
         Example:
             >>> preprocessor = Preprocessing()
-            >>> preprocessor.preprocessor("The cats are running quickly towards the garden.")
+            >>> preprocessor.full_preprocessor("The cats are running quickly towards the garden.")
             'cat run quickly toward garden'
         """
         if not isinstance(sentence, str):
@@ -322,7 +337,7 @@ class DataTransformers:
         """
         pass
 
-    def encode_emotions(df_cleaned: pd.DataFrame) -> pd.DataFrame:
+    def encode_emotions(self, df_cleaned: pd.DataFrame) -> pd.DataFrame:
         """
         Encodes the 'emotion' column of the provided DataFrame using Label Encoding
         and returns the encoded labels along with a mapping dictionary.
@@ -343,7 +358,7 @@ class DataTransformers:
         label_encoder = LabelEncoder()
 
         # Extract the 'emotion' column and copy it
-        y = df_cleaned[['emotion']].copy()
+        y = df_cleaned['emotion'].copy()
 
         # Fit and transform the 'emotion' column to encoded labels
         y_encoded = label_encoder.fit_transform(y)
@@ -353,13 +368,13 @@ class DataTransformers:
 
         return y_encoded, mapping_dict
 
-    def generate_tfidf_features(df_cleaned : pd.DataFrame, min_df=5) -> pd.DataFrame:
+    def generate_tfidf_features(self, df_cleaned : pd.DataFrame, min_df=5) -> pd.DataFrame:
         """
-        Generates a TF-IDF matrix from the 'preprocessed_sentence' column of the provided
+        Generates a TF-IDF matrix from the 'sentence' column of the provided
         DataFrame and returns it as a DataFrame with feature names as columns.
 
         Args:
-            df_cleaned (pd.DataFrame): The DataFrame containing the 'preprocessed_sentence' column to be transformed.
+            df_cleaned (pd.DataFrame): The DataFrame containing the 'sentence' column to be transformed.
             min_df (int, optional): The minimum number of documents a word must appear in to be included in the TF-IDF matrix. Default is 5.
 
         Returns:
@@ -372,11 +387,13 @@ class DataTransformers:
         # Initialize the TfidfVectorizer with the specified minimum document frequency
         tf_idf_vectorizer = TfidfVectorizer(min_df=min_df)
 
-        # Extract the 'preprocessed_sentence' column, dropping any NaN values
-        texts = [text for text in df_cleaned['preprocessed_sentence'].dropna()]
+        # Extract the 'sentence' column, dropping any NaN values
+        texts = [text for text in df_cleaned['sentence'].dropna()]
 
         # Generate the TF-IDF matrix and convert it to a DataFrame
-        X = pd.DataFrame(tf_idf_vectorizer.fit_transform(texts).toarray(),
-                         columns=tf_idf_vectorizer.get_feature_names_out())
+        # X = pd.DataFrame(tf_idf_vectorizer.fit_transform(texts).toarray(),
+        #                  columns=tf_idf_vectorizer.get_feature_names_out())
+
+        X = tf_idf_vectorizer.fit_transform(texts)
 
         return X, tf_idf_vectorizer

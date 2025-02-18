@@ -8,7 +8,7 @@ def test_tokenizer():
     # Testing different sentences
     assert cleaner.tokenizer("Hello, World!") == ["Hello", ",","World", "!"]
     assert cleaner.tokenizer("Python is awesome!") == ["Python", "awesome", "!"]
-    assert cleaner.tokenizer("I love Python! 1000") == ["love", "Python", "!", "1000"]
+    assert cleaner.tokenizer("I love Python! 1000") == ["I", "love", "Python", "!", "1000"]
 
     # Testing empty strings
     assert cleaner.tokenizer("") == []
@@ -82,27 +82,27 @@ def test_lemmatizing():
         cleaner.lemmatizing("string")   # String
 
 
-def test_preprocessor():
-    """Tests if preprocessor function correctly preprocesses the sentence."""
+def test_full_preprocessor():
+    """Tests if full_preprocessor function correctly preprocesses the sentence."""
     cleaner = Preprocessing(remove_stopwords=True)
     with_stopwords = Preprocessing(remove_stopwords=False)
 
     # Testing different sentences
-    assert cleaner.preprocessor("the cats are running quickly towards the garden") == "cat run quickly towards garden"
-    assert cleaner.preprocessor("the dogs are barking loudly in the park") == "dog bark loudly park"
-    assert cleaner.preprocessor("the birds are chirping in the trees") == "bird chirp tree"
+    assert cleaner.full_preprocessor("the cats are running quickly towards the garden") == "cat run quickly towards garden"
+    assert cleaner.full_preprocessor("the dogs are barking loudly in the park") == "dog bark loudly park"
+    assert cleaner.full_preprocessor("the birds are chirping in the trees") == "bird chirp tree"
 
     # Testing empty strings
-    assert cleaner.preprocessor("") == ""
+    assert cleaner.full_preprocessor("") == ""
 
     # Testing cleaner with stopwords
-    assert with_stopwords.preprocessor("the cats are running quickly towards the garden") == "the cat be run quickly towards the garden"
-    assert with_stopwords.preprocessor("the dogs are barking loudly in the park") == "the dog be bark loudly in the park"
-    assert with_stopwords.preprocessor("the birds are chirping in the trees") == "the bird be chirp in the tree"
+    assert with_stopwords.full_preprocessor("the cats are running quickly towards the garden") == "the cat be run quickly towards the garden"
+    assert with_stopwords.full_preprocessor("the dogs are barking loudly in the park") == "the dog be bark loudly in the park"
+    assert with_stopwords.full_preprocessor("the birds are chirping in the trees") == "the bird be chirp in the tree"
 
     # Testing expections
     with pytest.raises(ValueError, match="Input must be a string"):
-        cleaner.preprocessor(123)  # Integer
+        cleaner.full_preprocessor(123)  # Integer
 
     with pytest.raises(ValueError, match="Input must be a string"):
-        cleaner.preprocessor(None)
+        cleaner.full_preprocessor(None)
